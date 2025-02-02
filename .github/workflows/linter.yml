@@ -35,3 +35,17 @@ jobs:
         uses: super-linter/super-linter/slim@v7
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: setup aqua
+        uses: aquaproj/aqua-installer@v3.1.1
+        with:
+          aqua_version: v2.28.0
+          aqua_opts: ""
+
+      - name: Lint GitHub Action
+        run: |
+          ghalint run-action
+
+      - name: Lint GitHub Actions workflows
+        run: |
+          ghalint run
