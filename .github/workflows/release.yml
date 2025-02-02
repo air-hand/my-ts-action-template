@@ -1,0 +1,65 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+permissions: {}
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      # release by GitHub App to trigger after events.
+      - uses: actions/create-github-app-token@v1
+        id: app-token
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
+      - uses: googleapis/release-please-action@v4
+        id: release-please
+        with:
+          release-type: node
+          token: ${{ steps.app-token.outputs.token }}
+
+      - name: get app information
+        id: app-info
+        run: |
+          echo "app-user-id=$(gh api "/users/${APP_SLUG}[bot]" --jq .id)" >> "${GITHUB_OUTPUT}"
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          APP_SLUG: ${{ steps.app-token.outputs.app-slug }}
+
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+
+      - name: config git user
+        run: |
+          git config user.name "${GIT_USER_NAME}"
+          git config user.email "${GIT_USER_EMAIL}"
+        env:
+          GIT_USER_NAME: "${{ steps.app-token.outputs.app-slug }}[bot]"
+          GIT_USER_EMAIL: "${{ steps.app-info.outputs.app-user-id }}+${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com"
+
+      # https://github.com/googleapis/release-please-action?tab=readme-ov-file#creating-majorminor-tags
+      - name: update major and minor tags
+        if: steps.release-please.outputs.release_created == 'true'
+        run: |
+          git tag -d "v${MAJOR_VERSION}" || true
+          git tag -d "v${MAJOR_VERSION}.${MINOR_VERSION}" || true
+          git push --delete origin "v${MAJOR_VERSION}" || true
+          git push --delete origin "v${MAJOR_VERSION}.${MINOR_VERSION}" || true
+
+          git fetch --tags
+          git tag -a "v${MAJOR_VERSION}" -m "Release v${MAJOR_VERSION}"
+          git tag -a "v${MAJOR_VERSION}.${MINOR_VERSION}" -m "Release v${MAJOR_VERSION}.${MINOR_VERSION}"
+          git push origin --tags
+        env:
+          MAJOR_VERSION: ${{ steps.release-please.outputs.major }}
+          MINOR_VERSION: ${{ steps.release-please.outputs.minor }}
