@@ -52,7 +52,7 @@
     "@rollup/plugin-node-resolve": "^16.0.0",
     "@rollup/plugin-typescript": "^12.1.1",
     "@types/jest": "^30.0.0",
-    "@types/node": "^25.0.0",
+    "@types/node": "^26.0.0",
     "husky": "^9.1.7",
     "jest": "^30.0.0",
     "make-coverage-badge": "^1.2.0",
